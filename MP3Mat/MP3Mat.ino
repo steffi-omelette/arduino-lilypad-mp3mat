@@ -6,8 +6,13 @@
 // Stefanie Noell
 // me@stefanienoell.com
 
-// March 2016
-// Version 1.0
+// April 2020
+// Version 1.1
+// - Bug fix: corrected filenumber after reading files in directory
+// - removed constant ERROR_WINDOW and hard coded voltage divider values for directory input
+// - increased delay between voltage divider readings
+// - removed settings of initial volume as it gets overwritten straight away 
+// - Bug fix: change initial value of target_vol_range to a value out of used range but within limit of the byte datatype
 
 
 // Tries to find five directories, whose names start with "1" - "5".
@@ -41,7 +46,7 @@
 
 // ***********************************************************************//
 
-// - set volume as per UI at start
+// - separate directory and volume voltage readings to use different number ranges
 
 // ***********************************************************************//
 
@@ -82,7 +87,7 @@ SdFat sd;
 // and still use the serial port, as long as you're careful to
 // NOT ground the triggers while you're using the serial port).
 
-const boolean DEBUG = false;
+const boolean DEBUG = true;
 
 // INPUTS
 const byte SET_DIRECTORY_PIN = A5;   // voltage divider circuit input connected to ANALOG pin 5 (T3 on Lilypad MP3 with SJ1 cut/disconnected!)
@@ -94,11 +99,8 @@ const byte PREVIOUS_TRACK_SWITCH_PIN = 1; // switch circuit input connected to D
 const byte SD_CS = 9;     // Chip Select for SD card
 const int EN_GPIO1 = A2;  // Amp enable + MIDI/MP3 mode select
 
-// Error window for voltage dividers
-const int ERROR_WINDOW = 50;  // +/- this value
-
 // Delay between voltage divider readings
-const int BUTTONDELAY = 500;
+const int BUTTONDELAY = 1000;
 
 // Max number of files to be read per directory (more files = more memory needed!)
 const byte MAX_NUM_FILES = 20;
@@ -128,7 +130,7 @@ byte last_file = 0;  // previous (playing) file (0 = none)
 
 byte volume = 50; // actual volume value
 byte target_vol = 50; // volume we want to fade to
-byte target_vol_range = -1;  // previous volume trigger ( range of 0 to 5);
+byte target_vol_range = 255;  // previous volume trigger ( range of 0 to 5);
 
 boolean nextTrackSwitchOn = false;
 boolean previousTrackSwitchOn = false;
@@ -216,11 +218,6 @@ void setup()
   // =======================================================================//
   readRootDirnames();
 
-  // =======================================================================//
-  // ! Set initial volume                                                   //
-  // =======================================================================//
-  // Set the VS1053 volume. 0 is loudest, 255 is lowest (off):
-  MP3player.setVolume(50, 50);
 
   // =======================================================================//
   // ! Turn on the amplifier chip                                           //
@@ -616,7 +613,7 @@ void readFilenames(byte dirNum) {
 
   // start playing first file
   last_file = 0;
-  playMp3File(0);
+  playMp3File(1);
 }
 
 // =======================================================================//
@@ -629,12 +626,12 @@ int buttonPushed(byte pinNum) { //  Read voltage divider
   digitalWrite((pinNum), HIGH); // enable the 20k internal pullup
   val = analogRead(pinNum);   // read the input pin
 
-//  if (DEBUG) {
-//    Serial.print(F("pinNum: "));
-//    Serial.print(pinNum);
-//    Serial.print(F(", val: "));
-//    Serial.println(val);
-//  }
+  if (DEBUG) {
+    Serial.print(F("pinNum: "));
+    Serial.print(pinNum);
+    Serial.print(F(", val: "));
+    Serial.println(val);
+  }
 
   // we don't use the upper position because that is the same as the
   // all-open switch value when the internal 20K ohm pullup is enabled.
@@ -645,35 +642,35 @@ int buttonPushed(byte pinNum) { //  Read voltage divider
   //    return 0;
   //  } else
 
-  if ( val >= 780 and val <= 880 ) { // 830
+    if ( val >= (751) and val <= (980) ) { // measured: 763 - 
     if (DEBUG) {
       Serial.print(pinNum);
       Serial.println(F(": switch 1 pressed/triggered"));
     }
     return 1;
   }
-  else if ( val >= (630 - ERROR_WINDOW) and val <= (630 + ERROR_WINDOW) ) { // 630
+  else if ( val >= (580) and val <= (750) ) { // 612-742
     if (DEBUG) {
       Serial.print(pinNum);
       Serial.println(F(": switch 2 pressed/triggered"));
     }
     return 2;
   }
-  else if ( val >= (430 - ERROR_WINDOW) and val <= (430 + ERROR_WINDOW) ) { // 430
+  else if ( val >= (380) and val <= (560) ) { // - 560
     if (DEBUG) {
       Serial.print(pinNum);
       Serial.println(F(": switch 3 pressed/triggered"));
     }
     return 3;
   }
-  else if ( val >= (230 - ERROR_WINDOW) and val <= (230 + ERROR_WINDOW) ) { // 230
+  else if ( val >= (241) and val <= (360) ) { // measured: 232-354
     if (DEBUG) {
       Serial.print(pinNum);
       Serial.println(F(": switch 4 pressed/triggered"));
     }
     return 4;
   }
-  else if ( val >= 0 and val <= (20 + ERROR_WINDOW) )  {
+  else if ( val >= 0 and val <= (240) )  { // measured: 0 - 240
     if (DEBUG) {
       Serial.print(pinNum);
       Serial.println(F(": switch 5 pressed/triggered"));
