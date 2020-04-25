@@ -87,7 +87,7 @@ SdFat sd;
 // and still use the serial port, as long as you're careful to
 // NOT ground the triggers while you're using the serial port).
 
-const boolean DEBUG = true;
+const boolean DEBUG = false;
 
 // INPUTS
 const byte SET_DIRECTORY_PIN = A5;   // voltage divider circuit input connected to ANALOG pin 5 (T3 on Lilypad MP3 with SJ1 cut/disconnected!)
